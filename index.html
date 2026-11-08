@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d0f14"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>SF2 Studio</title>
+<style>
+:root{--bg:#0d0f14;--p:#161a22;--l:#262c38;--t:#e8e6df;--d:#8a93a3;--a:#7cc4d4}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--t);font:16px/1.4 system-ui,-apple-system,sans-serif}
+body{padding:env(safe-area-inset-top) 12px env(safe-area-inset-bottom);max-width:720px;margin:auto}
+header{display:flex;justify-content:space-between;align-items:center;padding:12px 0}
+h1{font-size:22px;margin:0;letter-spacing:-.3px}
+.pill{font-size:12px;color:var(--d);border:1px solid var(--l);border-radius:99px;padding:4px 10px}
+.pill.ok{color:var(--a);border-color:var(--a)}
+section{background:var(--p);border:1px solid var(--l);border-radius:10px;padding:12px;margin-bottom:10px}
+.btn,button{background:var(--a);color:#06222a;border:0;border-radius:8px;padding:12px 16px;font:600 16px system-ui;display:inline-block}
+button.g{background:var(--l);color:var(--t);padding:10px 14px}
+#fn{margin-top:8px;color:var(--d);font-size:14px;word-break:break-all}
+#q{width:100%;padding:10px;border-radius:8px;border:1px solid var(--l);background:var(--bg);color:var(--t);font-size:16px}
+#list{list-style:none;margin:8px 0 0;padding:0;max-height:32vh;overflow:auto}
+#list button{width:100%;text-align:left;background:none;color:var(--t);border-radius:6px;padding:10px;font-weight:400;display:flex;justify-content:space-between}
+#list button small{color:var(--d)}
+#list button.on{background:var(--l);color:var(--a)}
+.row{display:flex;gap:10px;align-items:center}
+input[type=range]{flex:1;accent-color:var(--a)}
+#cur{font-size:18px;font-weight:600;margin-bottom:8px}
+#info,#msg,#mon{font-size:13px;color:var(--d);margin:6px 0}
+#msg.err{color:#f0907a}
+#kb{position:relative;height:190px;display:flex;touch-action:none;user-select:none;-webkit-user-select:none;margin:10px 0}
+.w{flex:1;background:#ece7da;border:1px solid #9b958a;border-radius:0 0 6px 6px}
+.b{position:absolute;top:0;width:4.4%;height:62%;background:#14161b;border-radius:0 0 4px 4px;z-index:2}
+.w.dn{background:var(--a)}.b.dn{background:#3d8696}
+.s{display:grid;grid-template-columns:1fr 36% auto;gap:8px;align-items:center;margin-bottom:6px}
+.s .n{background:var(--bg);color:var(--t);font:400 14px system-ui;text-align:left;padding:10px;border:1px solid var(--l);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.s.sel .n{border-color:var(--a);color:var(--a)}
+.s .g{padding:8px 10px;font-size:12px;min-width:84px}.s .g.ln{background:var(--a);color:#06222a}
+[hidden]{display:none!important}
+</style></head><body>
+<header><h1>SF2 Studio</h1><span id="midi" class="pill">MIDI: aguardando</span></header>
+<section id="start"><button id="go">Iniciar áudio</button><p id="info">O iPhone só libera o som depois de um toque.</p></section>
+<section id="load" hidden><label class="btn">Importar SoundFont<input type="file" id="f" hidden></label><div id="fn">Nenhum arquivo carregado</div></section>
+<section id="ps" hidden><input id="q" placeholder="Buscar timbre" autocomplete="off"><ul id="list"></ul></section>
+<section id="ctl" hidden>
+<div id="mix"></div><div id="mon">Último MIDI: —</div>
+<div class="row"><span>Volume</span><input type="range" id="vol" min="0" max="100" value="80"></div>
+<div class="row" style="margin-top:10px"><button class="g" id="od">Oitava −</button><span id="ot" style="flex:1;text-align:center">C3</span><button class="g" id="ou">Oitava +</button></div>
+<div id="aud" style="font-size:13px;color:var(--d);margin-top:8px"></div>
+</section>
+<div id="kb"></div>
+<p id="msg"></p>
+<script type="module">
+const $=s=>document.querySelector(s),msg=(m,e)=>{$('#msg').textContent=m;$('#msg').className=e?'err':''};
+const V='4.3.0',B=`https://cdn.jsdelivr.net/npm/spessasynth_lib@${V}/`;
+const CH=[0,1,2,3,4,5,6,7,8,10,11,12,13,14,15];
+let ctx,synth,gain,presets=[],sel=0,learn=-1,ri=0,oct=3,held=new Map(),bankId=null;
+const S=Array.from({length:9},()=>({p:-1,ch:-1,v:0,cc:null,mc:null}));
+// armazenamento local (último SF2 e volume)
+const db=()=>new Promise((r,j)=>{const q=indexedDB.open('sf2studio',1);q.onupgradeneeded=()=>q.result.createObjectStore('k');q.onsuccess=()=>r(q.result);q.onerror=j});
+const put=async(k,v)=>{try{(await db()).transaction('k','readwrite').objectStore('k').put(v,k)}catch{}};
+const get=async k=>{try{const d=await db();return await new Promise(r=>{const q=d.transaction('k').objectStore('k').get(k);q.onsuccess=()=>r(q.result);q.onerror=()=>r()})}catch{}};
+
+async function init(){
+  $('#go').disabled=true;msg('Carregando motor de som…');
+  try{
+    ctx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});await ctx.resume();
+    const lib=await import(B+'+esm');
+    const src=await (await fetch(B+'dist/spessasynth_processor.min.js')).text();
+    await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([src],{type:'text/javascript'})));
+    synth=new lib.WorkletSynthesizer(ctx);gain=ctx.createGain();synth.connect(gain);gain.connect(ctx.destination);
+    await synth.isReady;
+  }catch(e){$('#go').disabled=false;msg('Falha ao iniciar o motor: '+(e.message||e)+'. Verifique a internet na primeira abertura.',1);return}
+  $('#start').hidden=true;$('#load').hidden=false;
+  $('#aud').textContent=`Áudio: ${ctx.sampleRate} Hz · latência base ≈ ${Math.round((ctx.baseLatency||0)*1000)} ms`;
+  const v=await get('vol');if(v!=null)$('#vol').value=v;setVol();
+  msg('Motor pronto. Importe um arquivo .sf2.');
+  midi();
+  const last=await get('sf');if(last){try{await loadSF(last.buf,last.name,true)}catch{}}
+}
+const setVol=()=>{if(gain)gain.gain.value=($('#vol').value/100)**2;put('vol',$('#vol').value)};
+$('#vol').oninput=setVol;
+
+async function loadSF(buf,name,restored){
+  const t=(a,b)=>String.fromCharCode(...new Uint8Array(buf,a,b));
+  const n=buf.byteLength,h=n>=12?t(0,4):'',ty=n>=12?t(8,4):'',vis=x=>x.replace(/[^\x20-\x7e]/g,'?');
+  if(h!=='RIFF'||ty!=='sfbk'){
+    let w='';
+    if(/\.(sfark|sf2pack|sfpack)$/i.test(name))w=' Esse formato é compactado e precisa ser convertido para .sf2 antes.';
+    else if(/\.(zip|rar|7z)$/i.test(name)||h.startsWith('PK'))w=' É um arquivo compactado: extraia o .sf2 de dentro primeiro.';
+    else if(n<1000)w=' O arquivo está vazio ou incompleto (se estiver no iCloud, baixe ele antes).';
+    throw new Error(`Arquivo inválido: não é um SoundFont SF2/SF3.${w} [${name}, ${n} bytes, início "${vis(h)}", tipo "${vis(ty)}"]`);
+  }
+  allOff();
+  if(bankId){try{await synth.soundBankManager.deleteSoundBank(bankId)}catch{}}
+  bankId='sf'+Date.now();
+  await synth.soundBankManager.addSoundBank(buf.slice(0),bankId);
+  await synth.isReady;
+  for(let i=0;i<30&&!(synth.presetList||[]).length;i++)await new Promise(r=>setTimeout(r,100));
+  presets=(synth.presetList||[]).map(p=>({n:p.name,msb:p.bankMSB??p.bank??0,lsb:p.bankLSB??0,pg:p.program??0,dr:!!(p.isGMGSDrum||p.isAnyDrums)}));
+  if(!presets.length)throw new Error('O arquivo abriu, mas nenhum preset foi encontrado.');
+  $('#fn').textContent=`${name} — ${presets.length} timbres`;
+  $('#ps').hidden=false;$('#ctl').hidden=false;const sv=(await get('mix'))||[];
+  S.forEach((x,i)=>{const o=sv[i]||{};x.cc=o.cc??null;x.mc=o.mc??null;x.v=o.v??(i?0:100);x.p=-1;x.ch=-1;
+    const j=o.k?presets.findIndex(p=>p.msb===o.k[0]&&p.lsb===o.k[1]&&p.pg===o.k[2]):-1;if(j>=0)assign(i,j)});
+  if(S[0].p<0){if(!S[0].v)S[0].v=100;assign(0,0)}
+  ui();
+  if(!restored)put('sf',{name,buf});
+  msg('Pronto para tocar.');
+}
+$('#f').onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;msg('Lendo '+f.name+'…');
+  try{await loadSF(await f.arrayBuffer(),f.name)}catch(x){msg(x.message||String(x),1)}
+  e.target.value='';
+};
+
+function render(){
+  const q=$('#q').value.toLowerCase(),L=$('#list');L.innerHTML='';
+  presets.forEach((p,i)=>{if(q&&!p.n.toLowerCase().includes(q))return;if(L.children.length>=300)return;
+    const li=document.createElement('li'),b=document.createElement('button');
+    b.className=i===S[sel].p?'on':'';b.innerHTML='<span></span><small>'+p.msb+':'+p.pg+'</small>';b.firstChild.textContent=p.n;
+    b.onclick=()=>pick(i);li.append(b);L.append(li)});
+}
+$('#q').oninput=render;
+
+// Camadas: até 9 timbres tocando juntos, cada um com seu fader (volume do canal MIDI).
+// Timbre novo sempre vai para um canal livre: notas antigas terminam sozinhas, sem corte.
+const free=()=>{for(let k=0;k<15;k++){ri=(ri+1)%15;const c=CH[ri];if(!S.some(x=>x.ch===c))return c}};
+const save=()=>put('mix',S.map(x=>({k:x.p>=0?[presets[x.p].msb,presets[x.p].lsb,presets[x.p].pg]:null,v:x.v,cc:x.cc,mc:x.mc})));
+function assign(i,pi){
+  const x=S[i],p=presets[pi];if(!p)return;
+  x.ch=p.dr?9:free();
+  synth.controllerChange(x.ch,0,p.msb);synth.controllerChange(x.ch,32,p.lsb);synth.programChange(x.ch,p.pg);
+  synth.controllerChange(x.ch,7,x.v);x.p=pi;ui();save();
+}
+const pick=i=>{if(!S[sel].v)S[sel].v=100;assign(sel,i)};
+function setLevel(i,v){const x=S[i];x.v=v;if(x.ch>=0)synth.controllerChange(x.ch,7,v);ui();save()}
+function ui(){
+  const M=$('#mix');
+  if(!M.children.length)S.forEach((x,i)=>{const d=document.createElement('div');
+    d.innerHTML='<button class="n"></button><input type="range" min="0" max="127"><button class="g"></button>';
+    const[n,r,g]=d.children;n.onclick=()=>{sel=i;ui()};r.oninput=()=>setLevel(i,+r.value);
+    g.onclick=()=>{learn=learn===i?-1:i;sel=i;ui()};M.append(d)});
+  [...M.children].forEach((d,i)=>{const x=S[i],[n,r,g]=d.children;d.className='s'+(i===sel?' sel':'');
+    n.textContent=(i+1)+'. '+(x.p>=0?presets[x.p].n:'vazio');r.value=x.v;
+    g.className='g'+(learn===i?' ln':'');g.textContent=learn===i?'Mexa o fader…':(x.cc!=null?'CC '+x.cc:'Aprender')});
+  render();
+}
+function on(id,n,v=100){if(!synth)return;off(id);const L=S.filter(x=>x.p>=0&&x.v>0).map(x=>[x.ch,n]);
+  if(!L.length)return;held.set(id,L);L.forEach(([c,k])=>synth.noteOn(c,k,v))}
+function off(id){const h=held.get(id);if(!h)return;held.delete(id);h.forEach(([c,k])=>synth.noteOff(c,k))}
+function allOff(){[...held.keys()].forEach(off)}
+
+// teclado virtual: 2 oitavas + dó
+const K=$('#kb'),W=[0,2,4,5,7,9,11],N=15;
+for(let i=0;i<N;i++){const o=Math.floor(i/7),s=o*12+W[i%7];mk('w',s,0)}
+for(let i=0;i<N-1;i++){if([2,6].includes(i%7))continue;const o=Math.floor(i/7),s=o*12+W[i%7]+1;mk('b',s,(i+1)*100/N-2.2)}
+function mk(c,s,left){
+  const d=document.createElement('div');d.className=c;if(c==='b')d.style.left=left+'%';
+  const id=()=>'k'+s;
+  d.onpointerdown=e=>{e.preventDefault();d.setPointerCapture(e.pointerId);d.classList.add('dn');on(id()+'_'+e.pointerId,12*oct+12+s)};
+  const up=e=>{d.classList.remove('dn');off(id()+'_'+e.pointerId)};
+  d.onpointerup=up;d.onpointercancel=up;K.append(d);
+}
+const setOct=n=>{oct=Math.max(0,Math.min(6,n));$('#ot').textContent='C'+oct};
+$('#od').onclick=()=>{allOff();setOct(oct-1)};$('#ou').onclick=()=>{allOff();setOct(oct+1)};
+
+// MIDI externo (só onde o navegador suporta Web MIDI; não existe no Safari/iPhone)
+async function midi(){
+  const s=$('#midi');
+  if(!navigator.requestMIDIAccess){s.textContent='MIDI externo indisponível neste navegador';return}
+  try{
+    const a=await navigator.requestMIDIAccess();
+    const hook=()=>{const n=[];a.inputs.forEach(i=>{i.onmidimessage=m;n.push(i.name)});
+      s.textContent=n.length?'MIDI: '+n.join(', '):'MIDI: nenhum teclado conectado';s.className='pill'+(n.length?' ok':'')};
+    a.onstatechange=hook;hook();
+  }catch(e){s.textContent='MIDI: permissão negada'}
+}
+function m(e){
+  const[st,a,b]=e.data,t=st&240,c=st&15;
+  if(t===176)$('#mon').textContent=`Último MIDI: canal ${c+1} · CC ${a} = ${b}`;
+  if(t===144&&b)on('m'+a,a,b);
+  else if(t===128||t===144)off('m'+a);
+  else if(t===176){
+    if(learn>=0){S[learn].cc=a;S[learn].mc=c;learn=-1;ui();save();return}
+    const i=S.findIndex(x=>x.cc===a&&x.mc===c);
+    if(i>=0){setLevel(i,b);return}
+    if(a===64||a===1)S.forEach(x=>{if(x.ch>=0)synth.controllerChange(x.ch,a,b)});
+  }
+  else if(t===192){const i=presets.findIndex(p=>p.pg===a&&!p.msb&&!p.dr);if(i>=0)pick(i)}
+}
+$('#go').onclick=init;
+if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script></body></html>
