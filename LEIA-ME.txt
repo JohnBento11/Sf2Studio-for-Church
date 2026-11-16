@@ -1,0 +1,58 @@
+SF2 STUDIO v13 — PERFORMANCE STUDIO (PC)
+========================================
+
+FOCO DESTA VERSÃO
+- Interface prioritariamente desktop para Windows + Google Chrome.
+- Compatibilidade por Web MIDI com teclados/controladores MIDI, incluindo o Roland XPS-10.
+- Central Audio Pads com 4 bancos de 6 pads (24 espaços no total).
+- Pads One-shot e Loop, volume individual, pontos de início/fim, associação a notas MIDI e disparo quantizado.
+- Sincronização de loop pelo BPM do projeto usando alteração de velocidade de reprodução.
+- Drum Machine com sequenciador de 16 passos e quatro pistas: bumbo, caixa, chimbal fechado e chimbal aberto.
+- Seis grooves originais editáveis: Gospel A, Gospel B, Pop, Rock, Funk e Balada.
+- Controle de Swing e sincronização do groove com o transporte do Estúdio.
+- Seleção de kit de bateria do SoundFont quando o arquivo disponibilizar presets de bateria; alternativa com bateria sintetizada interna.
+- Proteção e controle de sustain: CC64 reservado, polaridade normal/invertida e canal de bateria excluído da sustentação.
+- Compressor e limitador master opcionais, desligados por padrão e com ajustes persistentes.
+- Exportação WAV estéreo em 16 ou 24 bits.
+- Exportação/abertura de projeto com faixas, clipes, os quatro bancos de pads (até 24 áudios) e padrão rítmico.
+
+REQUISITOS
+- Windows 10/11 e Google Chrome atualizado são o ambiente-alvo.
+- É necessário importar um arquivo SoundFont (.sf2) para tocar timbres.
+- Para MIDI externo, abra a aplicação por HTTPS ou localhost e conceda a permissão de MIDI ao Chrome.
+- Para áudio, use uma interface/dispositivo de saída configurado no Windows. Uma interface de áudio dedicada pode ajudar a reduzir latência.
+- Os arquivos de áudio dos pads devem ser formatos que o Chrome consiga decodificar (por exemplo, WAV, MP3 ou formatos compatíveis no navegador).
+
+PRIMEIROS PASSOS
+1. Abra o endereço HTTPS onde o SF2 Studio está hospedado (ou rode em localhost).
+2. Clique em “Iniciar áudio”.
+3. Importe seu arquivo .sf2 em “Timbres”.
+4. Conecte o XPS-10 por USB, permita o acesso MIDI e confira o indicador MIDI.
+5. Na aba “Pads”, importe sons. Selecione um pad e use “Aprender nota MIDI”; em seguida, aperte a tecla/pad físico que deseja associar.
+6. Para montar um ritmo, selecione um groove ou marque os 16 passos. Use o controle Swing e “Seguir transporte” para acompanhar o BPM do Estúdio.
+7. No pedal, teste primeiro “Polaridade: normal”. Se o pedal sustentar ao soltar e liberar ao pisar, mude para “invertida”.
+8. Salve/exporte o projeto JSON para levar a sessão, faixas, loops e os quatro bancos de pads a outro navegador/dispositivo. O arquivo pode ficar grande quando houver muitos samples.
+
+SUSTAIN E PESO DO SOM
+A entrada CC64 é tratada antes de qualquer aprendizado de controlador/fader, evitando que o pedal seja interpretado como volume ou outro controle aprendido. O estado do sustain é enviado aos canais melódicos do sintetizador, sem aplicar sustain ao canal MIDI 10 de bateria. A opção de polaridade permite corrigir pedais que enviam o estado invertido.
+
+Importante: não é possível garantir o comportamento perfeito de todo pedal sem testar o modelo físico, o XPS-10, o driver e a configuração MIDI usados na instalação. O teste final deve ser feito com o teclado e o pedal reais.
+
+LIMITAÇÕES CONHECIDAS
+- A sincronização dos loops dos pads altera a velocidade de reprodução e, portanto, também altera a afinação. Ainda não é time-stretch com preservação de pitch.
+- O sequenciador rítmico atual oferece 4 pistas e 16 passos por padrão; não é um editor de bateria multifaixa completo.
+- Não há suporte a plugins VST/AU, drivers ASIO nativos, mapa de tempo complexo ou edição avançada de áudio comparável a uma DAW profissional completa.
+- A latência depende do navegador, sistema, driver, dispositivo de áudio e buffer. Este app não promete latência zero.
+- O uso depende do suporte do Chrome às APIs de áudio/MIDI e da disponibilidade do motor SoundFont via CDN na primeira abertura. Os projetos preservam os nomes e a seleção dos timbres, mas não incorporam o arquivo SoundFont completo; mantenha o mesmo .sf2 disponível ao abrir o projeto.
+- AIFF e outros formatos não são garantidos em todos os navegadores; prefira WAV ou MP3.
+
+TESTES DESTA ENTREGA
+- Verificação estática da sintaxe JavaScript (node --check).
+- Verificação de IDs HTML duplicados.
+- Verificação estrutural do pacote ZIP.
+- Não foi possível executar um teste de áudio real com XPS-10/pedal físico neste ambiente. O navegador de teste também não concluiu a inicialização completa da página. Portanto, antes de uma apresentação ou uso profissional, teste entrada MIDI, sustain, grooves, pads e exportação no PC de destino.
+
+SOBRE USO COMERCIAL
+Esta versão é uma base de desenvolvimento e não deve ser anunciada como produto comercial pronto antes de testes reais, correções, empacotamento, documentação, política de suporte e auditoria de licenças. O motor SpessaSynth é distribuído sob licença Apache 2.0 conforme os metadados públicos do projeto; SoundFonts, samples, loops, imagens, marcas e outros recursos adicionados precisam ter licenças compatíveis com uso comercial. Os grooves incluídos nesta versão são padrões originais do SF2 Studio, não cópias dos padrões internos da Roland.
+
+O Roland XPS-10 é usado aqui como referência de compatibilidade MIDI; SF2 Studio não é um produto oficial nem afiliado à Roland.
