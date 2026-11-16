@@ -1,0 +1,60 @@
+SF2 STUDIO v12 — PC STUDIO
+=================================
+
+Objetivo
+--------
+Estúdio SoundFont/MIDI gratuito para Windows + Google Chrome, com foco no uso de um teclado Roland XPS-10 como controlador USB MIDI.
+
+COMO INSTALAR
+-------------
+1. Extraia o ZIP.
+2. Publique o CONTEÚDO desta pasta na raiz do seu repositório/site (index.html, sw.js, manifest.webmanifest, imagens e este arquivo).
+3. Abra o endereço HTTPS no Google Chrome para Windows. O Web MIDI e a gravação de áudio exigem contexto seguro (HTTPS ou localhost).
+4. Na primeira abertura, mantenha a internet ativa para o Chrome carregar o motor SpessaSynth.
+5. Clique em “Iniciar áudio” e carregue um arquivo SoundFont .sf2.
+
+ROLAND XPS-10
+-------------
+1. Conecte o XPS-10 ao PC por USB e ligue o teclado antes de abrir o estúdio.
+2. Se o Windows pedir, instale o driver USB-MIDI Roland correspondente ao teclado.
+3. Abra o SF2 Studio no Chrome e autorize o acesso MIDI quando solicitado.
+4. Confira o indicador MIDI no topo. Toque no XPS-10 para disparar os timbres SoundFont carregados no estúdio.
+
+A conexão USB MIDI transmite notas e controles, não o áudio original do XPS-10. Para gravar o som interno do teclado, conecte as saídas de áudio L/R do XPS-10 a uma interface de áudio/entrada estéreo do PC e escolha essa entrada em “Entrada para gravar áudio”. Para gravar os timbres SoundFont do próprio SF2 Studio, use as faixas MIDI e exporte o mix WAV.
+
+RECURSOS DA v12
+---------------
+- Motor SoundFont SpessaSynth e teclado virtual.
+- Entrada USB MIDI pelo Web MIDI do Chrome.
+- Biblioteca local de SoundFonts .sf2.
+- Faixas MIDI e áudio na linha do tempo.
+- Gravação MIDI e captura de áudio por entrada do Windows.
+- Importação de áudio (formatos aceitos pelo navegador) e importação/exportação MIDI (.mid).
+- Piano roll com inserção, movimentação, redimensionamento, remoção, quantização e velocidade das notas.
+- Seleção de timbre por faixa MIDI, volume, panorama, mute e solo.
+- Automação básica de volume/pan com gravação de movimentos e pontos manuais.
+- Loop A/B, mover/redimensionar/dividir clipes; metrônomo; zoom; atalhos de teclado.
+- Exportação de mix WAV estéreo em tempo real.
+- Salvamento local no navegador e exportação/importação de projeto com os áudios.
+
+ATALHOS
+-------
+Espaço: tocar/parar
+R: iniciar/parar gravação MIDI
+S: dividir clipe no cursor
+Delete: apagar o clipe selecionado
+
+LIMITAÇÕES CONHECIDAS DESTA VERSÃO
+---------------------------------
+Esta é uma workstation em evolução, não uma cópia com paridade completa do Audio Evolution Mobile. Ainda faltam, entre outros recursos:
+- automação avançada de CC e desenho/edição gráfica detalhada de curvas;
+- efeitos independentes por faixa e cadeia de efeitos avançada;
+- gravação por punch-in e takes/comping (o loop A/B básico já está disponível);
+- time-stretch de áudio e edição avançada de waveform;
+- mapas de tempo/compassos variáveis e preservação integral de mudanças de tempo em arquivos MIDI;
+- suporte a plugins VST/AU e acesso direto a drivers ASIO/exclusivos pelo navegador;
+- edição avançada de eventos MIDI além de notas e CC básicos.
+
+O Chrome usa a pilha de áudio do Windows. A latência real depende do driver, da interface de áudio, do dispositivo de saída e do próprio sistema. A aplicação solicita AudioContext com preferência interactive, mas não pode prometer latência zero nem substituir um host ASIO nativo.
+
+O WAV é renderizado em tempo real pelo áudio que passa pelo motor do estúdio; exportações longas demoram o tempo de reprodução da música. Faça cópias de segurança com “Exportar projeto”, pois os projetos salvos localmente pertencem ao perfil do navegador e podem ser apagados ao limpar os dados do site.

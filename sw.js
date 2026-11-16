@@ -1,0 +1,7 @@
+const CACHE='sf2studio-v12';
+const SHELL=['./','index.html','manifest.webmanifest','logo.png','icon-192.png','icon-512.png'];
+self.addEventListener('install',event=>{event.waitUntil((async()=>{const c=await caches.open(CACHE);await Promise.all(SHELL.map(async url=>{try{const r=await fetch(url,{cache:'reload'});if(r.ok)await c.put(url,r)}catch{}}));await self.skipWaiting()})())});
+self.addEventListener('activate',event=>{event.waitUntil((async()=>{const names=await caches.keys();await Promise.all(names.filter(n=>n.startsWith('sf2studio-')&&n!==CACHE).map(n=>caches.delete(n)));await self.clients.claim()})())});
+self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET')return;const url=new URL(req.url);if(url.origin!==self.location.origin){event.respondWith((async()=>{const cached=await caches.match(req);try{const fresh=await fetch(req);if(fresh.ok){const c=await caches.open(CACHE);c.put(req,fresh.clone()).catch(()=>{})}return fresh}catch(e){if(cached)return cached;throw e}})());return}
+if(req.mode==='navigate'||url.pathname.endsWith('.html')){event.respondWith((async()=>{try{const fresh=await fetch(req,{cache:'no-store'});if(fresh.ok){const c=await caches.open(CACHE);c.put(req,fresh.clone()).catch(()=>{})}return fresh}catch{ return (await caches.match(req))||(await caches.match('index.html'))}})());return}
+event.respondWith((async()=>{const cached=await caches.match(req);if(cached)return cached;const fresh=await fetch(req);if(fresh.ok){const c=await caches.open(CACHE);c.put(req,fresh.clone()).catch(()=>{})}return fresh})())});
